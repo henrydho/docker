@@ -1,0 +1,39 @@
+---
+version: '3.7'
+
+services:
+  bind9:
+    image: ubuntu/bind9:latest
+    container_name: bind9
+    hostname: bind9
+    restart: unless-stopped
+    volumes:
+      - config:/etc/bind
+      - cache:/var/cache/bind
+      - records:/var/lib/bind
+    environment:
+      TZ: Australia/Sydney
+      BIND9_USER: root
+    ports:
+      - '172.16.100.2:53:53/tcp'
+      - '172.16.100.2:53:53/udp'
+
+volumes:
+  config:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=localhost,rw,noatime,rsize=8192,wsize=8192,tcp,timeo=14,nfsvers=4
+      device: ":/mnt/disk1/nfs/docker-volumes/bind9/config"
+  cache:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=localhost,rw,noatime,rsize=8192,wsize=8192,tcp,timeo=14,nfsvers=4
+      device: ":/mnt/disk1/nfs/docker-volumes/bind9/cache"
+  records:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=localhost,rw,noatime,rsize=8192,wsize=8192,tcp,timeo=14,nfsvers=4
+      device: ":/mnt/disk1/nfs/docker-volumes/bind9/records"

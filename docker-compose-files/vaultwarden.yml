@@ -1,0 +1,85 @@
+---
+version: '3.7'
+
+secrets:
+  mariadb_root_password:
+    file: /var/lib/docker/volumes/secrets/_data/vaultwarden/mariadb_root_password
+  mariadb_database:
+    file: /var/lib/docker/volumes/secrets/_data/vaultwarden/mariadb_database
+  mariadb_user:
+    file: /var/lib/docker/volumes/secrets/_data/vaultwarden/mariadb_user
+  mariadb_password:
+    file: /var/lib/docker/volumes/secrets/_data/vaultwarden/mariadb_password
+  admin_token:
+    file: /var/lib/docker/volumes/secrets/_data/vaultwarden/admin_token
+
+services:
+  vaultwarden:
+    image: 'vaultwarden/server:latest'
+    container_name: 'vaultwarden'
+    hostname: 'vaultwarden'
+    restart: unless-stopped
+    volumes:
+      - data:/data/
+      - /var/lib/docker/volumes/secrets/_data/vaultwarden:/etc/vaultwarden.d
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      # - "DATABASE_URL=mysql://<vaultwarden_user>:<vaultwarden_pw>@mariadb/vaultwarden"
+      # - "RUST_BACKTRACE=1"
+      SIGNUPS_ALLOWED: false
+      # INVITATIONS_ALLOWED: false
+      ADMIN_TOKEN_FILE: /run/secrets/admin_token
+      WEBSOCKET_ENABLED: true
+      DOMAIN: 'https://vault.htg.io'
+      SHOW_PASSWORD_HINT: false
+
+    secrets:
+      - mariadb_database
+      - mariadb_user
+      - mariadb_password
+      - admin_token
+    networks:
+      - outside
+      - backend
+    depends_on:
+      - mariadb
+
+  mariadb:
+    image: 'mariadb'
+    container_name: 'vaultwarden-database'
+    hostname: 'vaultwarden-database'
+    restart: unless-stopped
+    volumes:
+      - database:/var/lib/mysql
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      MARIADB_ROOT_PASSWORD_FILE: /run/secrets/mariadb_root_password
+      MARIADB_DATABASE_FILE: /run/secrets/mariadb_database
+      MARIADB_USER_FILE: /run/secrets/mariadb_user
+      MARIADB_PASSWORD_FILE: /run/secrets/mariadb_password
+    secrets:
+      - mariadb_root_password
+      - mariadb_database
+      - mariadb_user
+      - mariadb_password
+    networks:
+      - backend
+
+volumes:
+  data:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=nfs.htg.io,rw,noatime,rsize=8192,wsize=8192,tcp,timeo=14,nfsvers=4
+      device: ":/mnt/disk1/nfs/docker-volumes/vaultwarden/data"
+  database:
+      driver: local
+      driver_opts:
+        type: nfs
+        o: addr=nfs.htg.io,rw,noatime,rsize=8192,wsize=8192,tcp,timeo=14,nfsvers=4
+        device: ":/mnt/disk1/nfs/docker-volumes/vaultwarden/database"
+
+networks:
+  backend:
+  outside:
+    external: true

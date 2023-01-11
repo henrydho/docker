@@ -1,0 +1,28 @@
+---
+version: '3.7'
+
+services:
+  grafana:
+    image: grafana/grafana-oss
+    container_name: grafana
+    hostname: grafana
+    restart: unless-stopped
+    volumes:
+      - /mnt/disk1/nfs/docker-volumes/grafana/config/grafana.ini:/etc/grafana/grafana.ini
+      - data:/var/lib/grafana
+      - provisioning:/etc/grafana/provisioning
+    ports:
+      - 9000:3000
+volumes:
+  data:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=nfs.htg.io,rw,noatime,rsize=8192,wsize=8192,tcp,timeo=14,nfsvers=4
+      device: ":/mnt/disk1/nfs/docker-volumes/grafana/data"
+  provisioning:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=nfs.htg.io,rw,noatime,rsize=8192,wsize=8192,tcp,timeo=14,nfsvers=4
+      device: ":/mnt/disk1/nfs/docker-volumes/grafana/provisioning"

@@ -1,0 +1,78 @@
+---
+version: "3.7"
+
+secrets:
+  DB_ROOT_PWD:
+    file: /var/lib/docker/volumes/secrets/_data/nginxproxymanager/db_root_pwd.txt
+  MYSQL_PWD:
+    file: /var/lib/docker/volumes/secrets/_data/nginxproxymanager/mysql_pwd.txt
+
+services:
+  app:
+     image: 'jc21/nginx-proxy-manager:latest'
+     container_name: 'npm-app'
+     hostname: 'npm'
+     restart: unless-stopped
+     ports:
+       - '172.16.100.14:80:80'      # public http port
+       - '172.16.100.14:443:443'    # public https port
+       - '172.16.100.14:8181:81'    # admin port
+     environment:
+       DB_MYSQL_HOST: 'db'
+       DB_MYSQL_PORT: 3306
+       DB_MYSQL_USER: 'npm'
+       DB_MYSQL_PASSWORD__FILE: /run/secrets/MYSQL_PWD
+       DB_MYSQL_NAME: 'npm'
+       # DISABLE_IPV6: 'true'
+     volumes:
+       - data:/data
+       - letsencrypt:/etc/letsencrypt
+     secrets:
+       - MYSQL_PWD
+     depends_on:
+       - db
+     networks:
+       - outside
+       - backend
+  db:
+     image: 'jc21/mariadb-aria:latest'
+     container_name: 'npm-db'
+     hostname: 'npm-db'
+     restart: unless-stopped
+     environment:
+       MYSQL_ROOT_PASSWORD__FILE: /run/secrets/DB_ROOT_PWD
+       MYSQL_DATABASE: 'npm'
+       MYSQL_USER: 'npm'
+       MYSQL_PASSWORD__FILE: /run/secrets/MYSQL_PWD
+     volumes:
+       - database:/var/lib/mysql
+     secrets:
+       - DB_ROOT_PWD
+       - MYSQL_PWD
+     networks:
+       - backend
+
+volumes:
+  data:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=nfs.htg.io,rw,noatime,rsize=8192,wsize=8192,tcp,timeo=14,nfsvers=4
+      device: ":/mnt/disk1/nfs/docker-volumes/nginxproxymanager/data"
+  letsencrypt:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=nfs.htg.io,rw,noatime,rsize=8192,wsize=8192,tcp,timeo=14,nfsvers=4
+      device: ":/mnt/disk1/nfs/docker-volumes/nginxproxymanager/letsencrypt"
+  database:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=nfs.htg.io,rw,noatime,rsize=8192,wsize=8192,tcp,timeo=14,nfsvers=4
+      device: ":/mnt/disk1/nfs/docker-volumes/nginxproxymanager/database"
+
+networks:
+  backend:
+  outside:
+    external: true
