@@ -17,9 +17,6 @@ services:
     ports:
       - '172.16.100.2:53:53/tcp'
       - '172.16.100.2:53:53/udp'
-    networks:
-      server:
-        ipv4_address: 172.18.0.2
 
 volumes:
   config:
@@ -42,5 +39,6 @@ volumes:
       device: ":/mnt/disk1/nfs/docker-volumes/bind9/records"
 
 networks:
-  server:
+  default:
     external: true
+    name: server 
